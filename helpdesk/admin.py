@@ -6,6 +6,7 @@ admin.site.register(Category)
 admin.site.register(Comment)
 admin.site.register(Ticket)
 admin.site.register(Subcategory)
-admin.site.register(Departments)
+admin.site.register(Department)
 admin.site.register(TelegramUser)
+admin.site.register(Employee)
 

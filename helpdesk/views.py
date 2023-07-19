@@ -10,6 +10,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.tokens import default_token_generator
 from .models import *
+from .serializers import *
 
 
 class CreateUserTg(APIView):
@@ -52,6 +53,34 @@ class CreateTicket(APIView):
                                            subcategory=subcategory_obj, description=description)
             ticket.save()
             return Response(status=status.HTTP_200_OK)
+        else:
+            return Response({'Error': 'Wrong fields'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetTopics(APIView):
+    def get(self, request):
+        category_list = []
+        category = list(Category.objects.all())
+        for i in category:
+            serializer = SubcategorySerializer(Subcategory.objects.filter(category=i), many=True)
+            category_list.append({"id": i.id, "name": i.name, "subcategory": serializer.data})
+        return Response(category_list, status=status.HTTP_200_OK)
+
+
+class GetTicket(APIView):
+    def get(self, request):
+        tg_id = request.GET.get("tg_id")
+        ticket_token = request.GET.get("token")
+        if tg_id:
+            if ticket_token:
+                ticket = Ticket.objects.get(token=ticket_token)
+                serializer = TicketSerializer(ticket)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                owner = TelegramUser.objects.get(tg_id=tg_id).user
+                tickets = Ticket.objects.filter(owner=owner)
+                serializer = TicketSerializer(tickets, many=True)
+                return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response({'Error': 'Wrong fields'}, status=status.HTTP_400_BAD_REQUEST)
 
