@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Меню</title>
+    <link rel="stylesheet" href="{% static 'css/header.css' %}">
+</head>
+<body>
+    <div class="container">
+        {% include 'menu.html' %}
+
+        <main class="main-content">
+            <div class="col-sm-10 ">
+                {% block body %}
+                {% endblock body %}
+            </div>
+        </main>
+    </div>
+    <script src="{% static 'js/sidebar.js' %}"></script>
+</body>
+</html>

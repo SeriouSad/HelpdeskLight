@@ -74,20 +74,21 @@ class Ticket(models.Model):
     )
 
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    type = models.IntegerField(choices=APPEAL_TYPE, blank=True, default=4)
+    type = models.IntegerField(choices=APPEAL_TYPE, blank=True, default=3)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
-    contacts = models.CharField(max_length=300, default="")
+    phone = models.CharField(max_length=300, default="")
+    place = models.CharField(max_length=300, default="")
     email = models.CharField(default="", max_length=100, blank=True)
     status = models.IntegerField(choices=STATUS_CHOICES, blank=True, default=0)
     priority = models.IntegerField(choices=PRIORITY, blank=True, default=1)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
     subcategory = models.ForeignKey(Subcategory, on_delete=models.SET_NULL, null=True)
     description = models.TextField(blank=False)
     deadline_date = models.DateField(blank=False, default=datetime.date.today() + datetime.timedelta(days=3))
-    department = models.ForeignKey(Department, null=True, blank=True, on_delete=models.SET_NULL)
+    department = models.ManyToManyField(Department, null=True, blank=True)
     responsible = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True)
 
 

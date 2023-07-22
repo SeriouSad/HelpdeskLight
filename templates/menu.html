@@ -1,0 +1,16 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/header.css' %}">
+        <div class="burger-icon">
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+        </div>
+        <nav class="sidebar">
+            <h1>HelpDesk Light</h1>
+            <ul>
+                <li><a href="{% url 'create_new' %}">Разбор заявок</a></li>
+                <li><a href="{% url 'create_new' %}">Создать заявку</a></li>
+                <li><a href="{% url 'create_new' %}">Работа с заявками</a></li>
+                <li><a href="{% url 'create_new' %}">Профиль</a></li>
+            </ul>
+        </nav>

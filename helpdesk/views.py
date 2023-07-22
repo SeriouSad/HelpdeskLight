@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
@@ -9,8 +9,10 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.decorators import login_required
 from .models import *
 from .serializers import *
+from .forms import *
 
 
 class CreateUserTg(APIView):
@@ -99,3 +101,29 @@ def confirm_email(request, uidb64, token, tg_id):
         return render(request, 'confirmation/email_confirmed.html')
     except User.DoesNotExist:
         return render(request, 'confirmation/invalid_confirmation_link.html')
+
+@login_required
+def index(request):
+    return render(request, 'index.html')
+
+    #return render(request, "user/index.html", context={"tickets": tickets})
+
+@login_required
+def create_new(request):
+    if request.method == 'POST':
+        form = NewTicket(request.POST)
+
+        if form.is_valid():
+            subcategory = form.cleaned_data['subcategory']
+            phone = form.cleaned_data['phone']
+            place = form.cleaned_data['place']
+            email = form.cleaned_data['email']
+            description = form.cleaned_data['description']
+            category = subcategory.category
+            ticket = Ticket.objects.create(owner=request.user, phone=phone, place=place, category=category,
+                                           subcategory=subcategory, description=description, email=email)
+            ticket.save()
+            return render(request, 'index.html')
+    print("test4")
+    form = NewTicket()
+    return render(request, 'create_ticket.html', {'form': form})

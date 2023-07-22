@@ -1,0 +1,115 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 20%;
+    background-color: #007bff;
+    color: #fff;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: transform 0.3s ease-in-out;
+    position: relative;
+    z-index: 1;
+}
+
+.sidebar.hidden {
+    transform: translateX(-100%); /* Скрываем меню за левой границей экрана */
+}
+
+.sidebar.active {
+    transform: translateX(0); /* Показываем меню после активации бургер-иконки */
+}
+
+.sidebar h1 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar li {
+    margin-bottom: 10px;
+}
+
+.sidebar a {
+    color: #fff;
+    text-decoration: none;
+    transition: 0.3s;
+    display: block;
+}
+
+.sidebar a:hover {
+    color: #ffcc00;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    background-color: #f2f2f2; /* Пример цвета фона для главной части */
+    position: relative;
+    z-index: 0;
+}
+
+/* Медиа-запрос для мобильных устройств */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .burger-icon {
+        cursor: pointer;
+        display: block;
+        margin: 10px; /* Добавляем отступы, чтобы иконка была отцентрирована */
+        z-index: 2;
+    }
+
+    .line {
+        width: 30px;
+        height: 5px;
+        background-color: #002aff;
+        margin: 6px 0;
+        transition: 0.3s;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: 100%; /* Задаем высоту 100%, чтобы меню занимало всю высоту экрана */
+        position: absolute;
+        top: 0;
+        left: -100%; /* Скрываем меню за левой границей экрана */
+        background-color: #007bff;
+        color: #fff;
+        padding: 20px;
+        box-sizing: border-box;
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .sidebar.active {
+        left: 0; /* Показываем меню после активации бургер-иконки */
+    }
+
+    .burger-icon.active .line:nth-child(1) {
+        transform: rotate(-45deg) translate(-5px, 6px);
+    }
+
+    .burger-icon.active .line:nth-child(2) {
+        opacity: 0;
+    }
+
+    .burger-icon.active .line:nth-child(3) {
+        transform: rotate(45deg) translate(-5px, -6px);
+    }
+}

@@ -7,4 +7,6 @@ urlpatterns = [
     path("api/topics", views.GetTopics.as_view()),
     path("api/ticket", views.GetTicket.as_view()),
     path('confirm_email/<str:token>/<str:uidb64>/<str:tg_id>/', views.confirm_email, name='confirm_email'),
+    path('', views.index, name='index'),
+    path('create-new', views.create_new, name='create_new')
 ]
