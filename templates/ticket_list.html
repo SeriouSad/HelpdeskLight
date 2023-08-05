@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}{% endblock title %}
+{% load static %}
+{% block body %}
+<link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
+    <div class="list-container">
+        {% for i in tickets %}
+        <ul class="helpdesk-list">
+            <li><span class="list-label">{{i.token}}</span></li>
+            <li><span class="list-label">{{i.category.name}}</span></li>
+            <li><span class="list-label">{{i.created}}</span></li>
+        </ul>
+        {% endfor %}
+        <div>
+            {% block content %}
+        {% endblock content %}
+        </div>
+
+    </div>
+{% endblock body %}

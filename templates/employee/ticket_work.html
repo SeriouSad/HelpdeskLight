@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}chat_app{% endblock title %}
+{% load static %}
+{% block body %}
+<link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
+    <div class="split-container">
+        <div class="left-column">
+            <h2>Список заявок</h2>
+            {% for i in tickets %}
+            <div class="helpdesk-item">
+                <div class="helpdesk-info">
+                    <a class="list-label" href="{% url link i.id %}">ID - {{i.id}}</a>
+                    <!-- Здесь может быть содержимое для кода -->
+                </div>
+                <div class="helpdesk-info">
+                    <span class="list-label">Токен - {{i.token}}</span>
+                    <!-- Здесь может быть содержимое для кода -->
+                </div>
+                <div class="helpdesk-info">
+                    <span class="list-label">Категория - {{i.category.name}}</span>
+                    <!-- Здесь может быть содержимое для категории -->
+                </div>
+                <div class="helpdesk-info">
+                    <span class="list-label">Дата создания - {{i.created}}</span>
+                    <!-- Здесь может быть содержимое для даты создания заявления -->
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+        <div class="right-column">
+            {% if form != None %}
+            <h2>Детальная информация</h2>
+            <div class="details">
+                <h3>Редактирование заявки</h3>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Save">
+    </form>
+            </div>
+            {% endif %}
+        </div>
+        {% if chat %}
+        <div class="Chat">
+            <style>
+        /* Стили для контейнера сообщений */
+.chat-messages {
+  overflow-y: scroll; /* Добавляем прокрутку, если сообщений много */
+  height: 400px; /* Ограничиваем высоту контейнера сообщений для прокрутки */
+}
+
+/* Стили для сообщений */
+.message {
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 5px;
+  clear: both; /* Очищаем обтекание для каждого сообщения */
+}
+
+/* Стили для пользовательских сообщений */
+.user-message {
+  background-color: #D3F1F3;
+  float: right;
+}
+
+/* Стили для сообщений других пользователей */
+.other-message {
+  background-color: #F3F3F3;
+  float: left;
+}
+
+/* Стили для имени пользователя */
+.user {
+  font-weight: bold;
+}
+
+/* Стили для контейнера ввода сообщения */
+.input-container {
+  margin-top: 10px;
+}
+
+/* Стили для кнопки отправки сообщения */
+.input-container input[type="submit"] {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.input-container input[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+/* Стили для текстового поля ввода сообщения */
+.input-container input[type="text"] {
+  width: 80%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* Стили для скрытого поля ticket_id */
+.input-container input[type="hidden"] {
+  display: none;
+}
+
+    </style>
+    <div class="chat-container">
+        <h3>Чат по заявке</h3>
+
+
+<!-- ... Ваш HTML код ... -->
+
+<div class="chat-messages">
+    {% for message in messages %}
+    <div class="message {% if message.owner == request.user %}user-message{% endif %}">
+        <span class="user">{{ message.owner.username }}:</span>
+        <span class="content">{{ message.content }}</span>
+    </div>
+    {% endfor %}
+</div>
+<div class="input-container">
+    <form method="post">
+        {% csrf_token %}
+        {{ chat_form.as_p }}
+        <input type="submit" value="Отправить">
+    </form>
+</div>
+
+</div>
+            {% endif %}
+    </div>
+        </div>
+    </div>
+{% endblock body %}

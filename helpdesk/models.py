@@ -1,10 +1,15 @@
 import datetime
 import uuid
+import random
 from django.db import models
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.conf import settings
 from django.contrib.auth.models import User
+
+
+def generate_random_token():
+    return str(random.randint(100000000, 999999999))
 
 
 class Category(models.Model):
@@ -36,7 +41,6 @@ class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
 
-    # Добавьте другие поля для сотрудника
 
     def __str__(self):
         return self.user.username
@@ -73,24 +77,23 @@ class Ticket(models.Model):
         (5, "Телефон"),
     )
 
-    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    token = models.IntegerField(default=generate_random_token, editable=False, unique=True)
     type = models.IntegerField(choices=APPEAL_TYPE, blank=True, default=3)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
     phone = models.CharField(max_length=300, default="")
-    place = models.CharField(max_length=300, default="")
+    place = models.CharField(max_length=300, default="", blank=False)
     email = models.CharField(default="", max_length=100, blank=True)
     status = models.IntegerField(choices=STATUS_CHOICES, blank=True, default=0)
     priority = models.IntegerField(choices=PRIORITY, blank=True, default=1)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
-    subcategory = models.ForeignKey(Subcategory, on_delete=models.SET_NULL, null=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=False)
+    subcategory = models.ForeignKey(Subcategory, on_delete=models.SET_NULL, null=True, blank=False)
     description = models.TextField(blank=False)
     deadline_date = models.DateField(blank=False, default=datetime.date.today() + datetime.timedelta(days=3))
-    department = models.ManyToManyField(Department, null=True, blank=True)
-    responsible = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True)
-
+    department = models.ManyToManyField(Department, blank=True)
+    responsible = models.ManyToManyField(Employee, blank=True)
 
     class Meta:
         ordering = ('-created',)
@@ -110,13 +113,9 @@ class Comment(models.Model):
         verbose_name='content', blank=False, help_text=".")
 
     def __str__(self):
-        return f'from {self.owner} on ticket #{self.ticket.code}'
+        return f'from {self.owner} on ticket #{self.ticket.token}'
 
 
-@receiver(pre_save, sender=Ticket)
-def generate_token(sender, instance, **kwargs):
-    if not instance.token:
-        instance.token = uuid.uuid4()
 
 
 @receiver(pre_save, sender=Ticket)

@@ -1,8 +1,11 @@
-from django.shortcuts import render, redirect
+from django.http import Http404
+from django.urls import reverse
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -15,6 +18,7 @@ from .serializers import *
 from .forms import *
 
 
+# region API
 class CreateUserTg(APIView):
     def post(self, request):
         data = dict(request.data)
@@ -40,6 +44,19 @@ class CreateUserTg(APIView):
             return Response({'Error': 'Wrong fields'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class CheckUser(APIView):
+    def get(self, request):
+        data = dict(request.data)
+        tg_id = int(data.get("tg_id", None))
+        if tg_id:
+            if TelegramUser.objects.filter(tg_id=tg_id).exists():
+                return Response({"confirmed": True}, status=status.HTTP_200_OK)
+            else:
+                return Response({"Error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({'Error': 'Wrong fields'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class CreateTicket(APIView):
     def post(self, request):
         data = dict(request.data)
@@ -47,14 +64,15 @@ class CreateTicket(APIView):
         subcategory = data.get("subcategory")
         description = data.get("description")
         contacts = data.get("contacts")
+        place = data.get("place")
         if tg_id and description and contacts:
             owner = TelegramUser.objects.get(tg_id=tg_id).user
             subcategory_obj = Subcategory.objects.get(id=subcategory)
             category = subcategory_obj.category
-            ticket = Ticket.objects.create(owner=owner, contacts=contacts, category=category,
-                                           subcategory=subcategory_obj, description=description)
+            ticket = Ticket.objects.create(owner=owner, phone=contacts, category=category,
+                                           subcategory=subcategory_obj, description=description, place=place)
             ticket.save()
-            return Response(status=status.HTTP_200_OK)
+            return Response(ticket.token, status=status.HTTP_200_OK)
         else:
             return Response({'Error': 'Wrong fields'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -86,6 +104,8 @@ class GetTicket(APIView):
         else:
             return Response({'Error': 'Wrong fields'}, status=status.HTTP_400_BAD_REQUEST)
 
+# endregion
+
 
 def confirm_email(request, uidb64, token, tg_id):
     try:
@@ -97,33 +117,143 @@ def confirm_email(request, uidb64, token, tg_id):
             user.is_email_confirmed = True
             user.save()
             user_tg = TelegramUser.objects.create(tg_id=tg_id, user=user)
+            user_tg.save()
 
         return render(request, 'confirmation/email_confirmed.html')
     except User.DoesNotExist:
         return render(request, 'confirmation/invalid_confirmation_link.html')
 
+
+def send_message(request, ticket):
+    if request.method == 'POST':  # Сохраняем сообщение только при POST запросе
+        message_form = ChatForm(request.POST)
+        if message_form.is_valid():
+            message_form.instance.owner = request.user
+            message_form.instance.ticket = ticket
+            message_form.save()
+            return True
+
+
+
+
 @login_required
 def index(request):
     return render(request, 'index.html')
 
-    #return render(request, "user/index.html", context={"tickets": tickets})
 
 @login_required
 def create_new(request):
     if request.method == 'POST':
-        form = NewTicket(request.POST)
-
+        if request.user.groups.filter(name__in=["Employee", "Operators"]):
+            form = NewTicketOperator(request.POST)
+        else:
+            form = NewTicket(request.POST)
         if form.is_valid():
-            subcategory = form.cleaned_data['subcategory']
-            phone = form.cleaned_data['phone']
-            place = form.cleaned_data['place']
-            email = form.cleaned_data['email']
-            description = form.cleaned_data['description']
-            category = subcategory.category
-            ticket = Ticket.objects.create(owner=request.user, phone=phone, place=place, category=category,
-                                           subcategory=subcategory, description=description, email=email)
-            ticket.save()
+            form.instance.owner = request.user
+            form.save()
             return render(request, 'index.html')
-    print("test4")
-    form = NewTicket()
+    if request.user.groups.filter(name__in=["Employee", "Operators"]):
+        form = NewTicketOperator()
+    else:
+        form = NewTicket()
     return render(request, 'create_ticket.html', {'form': form})
+
+
+@login_required
+def ticket_sort(request, ticket_id=None):
+    link = "ticket_work2"
+    tickets = Ticket.objects.filter(status=0)
+    if ticket_id:
+        ticket = get_object_or_404(Ticket, pk=ticket_id)
+        chat_form = ChatForm()
+        if request.method == 'POST':
+            if send_message(request, ticket):
+                url = reverse(link, args=[ticket.id])
+                return redirect(url)
+
+            form = EditTicketOperator(request.POST, instance=ticket)
+            if form.is_valid():
+                form.save()
+            else:
+                form = EditTicketOperator(instance=ticket)
+            messages = Comment.objects.filter(ticket=ticket)
+
+            return render(request, 'employee/ticket_work.html',
+                          {"tickets": tickets, 'form': form, 'link': link,
+                           'messages': messages, 'chat': True, "chat_form": chat_form})
+        else:
+            messages = Comment.objects.filter(ticket=ticket)
+            form = EditTicketOperator(instance=ticket)
+            return render(request, 'employee/ticket_work.html',
+                          {"tickets": tickets, 'form': form, 'link': link,
+                           'messages': messages, 'chat': True, "chat_form": chat_form})
+    return render(request, 'employee/ticket_work.html',
+                  {"tickets": tickets, 'form': None, 'link': link})
+
+
+@login_required
+def user_tickets(request, ticket_id=None):
+    tickets = Ticket.objects.filter(owner=request.user)
+    link = "my_tickets2"
+    if ticket_id:
+        ticket = get_object_or_404(Ticket, pk=ticket_id)
+        chat_form = ChatForm()
+        if request.method == 'POST':
+            if send_message(request, ticket):
+                url = reverse(link, args=[ticket.id])
+                return redirect(url)
+
+            form = EditTicketUser(request.POST, instance=ticket)
+            if form.is_valid():
+                form.save()
+            else:
+                form = EditTicketUser(instance=ticket)
+            messages = Comment.objects.filter(ticket=ticket)
+
+            return render(request, 'employee/ticket_work.html',
+                          {"tickets": tickets, 'form': form, 'link': link,
+                           'messages': messages, 'chat': True, "chat_form": chat_form})
+        else:
+            messages = Comment.objects.filter(ticket=ticket)
+            form = EditTicketUser(instance=ticket)
+            return render(request, 'employee/ticket_work.html',
+                          {"tickets": tickets, 'form': form, 'link': link,
+                           'messages': messages, 'chat': True, "chat_form": chat_form})
+    return render(request, 'employee/ticket_work.html',
+                  {"tickets": tickets, 'form': None, 'link': link})
+
+
+@login_required
+def do_tickets(request, ticket_id=None):
+    link = "do_tickets2"
+    if request.user.groups.filter(name__in=["Employee", "Operators"]):
+        responsible = Employee.objects.get(user=request.user)
+        tickets = Ticket.objects.filter(status__in=[1, 2], responsible=responsible)
+    else:
+        raise PermissionDenied()
+    if ticket_id:
+        ticket = get_object_or_404(Ticket, pk=ticket_id)
+        chat_form = ChatForm()
+        if request.method == 'POST':
+            if send_message(request, ticket):
+                url = reverse(link, args=[ticket.id])
+                return redirect(url)
+
+            form = EditTicketOperator(request.POST, instance=ticket)
+            if form.is_valid():
+                form.save()
+            else:
+                form = EditTicketOperator(instance=ticket)
+            messages = Comment.objects.filter(ticket=ticket)
+
+            return render(request, 'employee/ticket_work.html',
+                          {"tickets": tickets, 'form': form, 'link': link,
+                           'messages': messages, 'chat': True, "chat_form": chat_form})
+        else:
+            messages = Comment.objects.filter(ticket=ticket)
+            form = EditTicketOperator(instance=ticket)
+            return render(request, 'employee/ticket_work.html',
+                          {"tickets": tickets, 'form': form, 'link': link,
+                           'messages': messages, 'chat': True, "chat_form": chat_form})
+    return render(request, 'employee/ticket_work.html',
+                  {"tickets": tickets, 'form': None, 'link': link})
