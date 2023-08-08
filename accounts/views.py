@@ -7,8 +7,6 @@ from .forms import *
 def user_login(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
-        print(request.POST.get('username'))
-        print(request.POST.get('password'))
         if form.is_valid():
             cd = form.cleaned_data
             user = authenticate(username=cd['username'],

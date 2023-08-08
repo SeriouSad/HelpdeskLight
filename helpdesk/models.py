@@ -5,7 +5,7 @@ from django.db import models
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 
 
 def generate_random_token():
@@ -29,7 +29,7 @@ class Subcategory(models.Model):
 
 class Department(models.Model):
     name = models.CharField(max_length=100, default="")
-    location = models.CharField(max_length=100, default="")
+    location = models.CharField(max_length=100, default="", null=True)
     head = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
 
@@ -117,7 +117,6 @@ class Comment(models.Model):
 
 
 
-
 @receiver(pre_save, sender=Ticket)
 def handle_field_change(sender, instance, **kwargs):
     if instance.pk:
@@ -142,3 +141,23 @@ def handle_field_change(sender, instance, **kwargs):
 
         except Ticket.DoesNotExist:
             pass
+
+
+# @receiver(post_save, sender=User)
+# def user_post_save(sender, instance, **kwargs):
+#     if kwargs.get('created', False):
+#         result, email = is_user_in_ou(instance.username, "управление по информатизации")
+#         if result:
+#             department = get_department(instance.username)
+#             print(department)
+#             if Department.objects.filter(name=department).exists():
+#                 dep = Department.objects.get(name=department)
+#             else:
+#                 dep = Department.objects.create(name=department)
+#             Employee.objects.create(user=instance, department=dep)
+#             group1 = Group.objects.get(name='Employee')
+#             group2 = Group.objects.get(name='Operators')
+#             instance.groups.add(group1, group2)
+#             instance.email = email.decode()
+#             instance.save()
+

@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 from decouple import config
+import ldap
+from django_auth_ldap.config import LDAPSearch, GroupOfNamesType, LDAPGroupQuery
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -75,6 +77,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+AUTHENTICATION_BACKENDS = [
+    'accounts.custom_auth.CustomLDAPBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -111,7 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -144,11 +151,20 @@ EMAIL_HOST_PASSWORD = config('EMAIL_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 SERVER_EMAIL = config('SERVER_EMAIL')
 
-# MAILBOX_HOST = config('MAILBOX_HOST')
-# MAILBOX_PORT = config('MAILBOX_PORT')
-# MAILBOX_USER = config('MAILBOX_USER')
-# MAILBOX_PASSWORD = config('MAILBOX_PASSWORD')
-# MAILBOX_PROTOCOL = config('MAILBOX_PROTOCOL')
-# MAILBOX_SSL = config('MAILBOX_SSL')
-# MAILBOX_DELETE_MESSAGE = config('MAILBOX_DELETE_MESSAGE')
-# MAILBOX_MARK_READ = config('MAILBOX_MARK_READ')
+AUTH_LDAP_SERVER_URI = config('AUTH_LDAP_SERVER_URI')
+AUTH_LDAP_BIND_DN = config('AUTH_LDAP_BIND_DN')
+AUTH_LDAP_BIND_PASSWORD = config('AUTH_LDAP_BIND_PASSWORD')
+AUTH_LDAP_USER_SEARCH = LDAPSearch(config('BASE_DN'), ldap.SCOPE_SUBTREE, "(|(sAMAccountName=%(user)s)(mail=%(user)s))")
+AUTH_LDAP_GROUP_SEARCH = LDAPSearch(config('BASE_DN'), ldap.SCOPE_SUBTREE, "(objectClass=groupOfNames)")
+AUTH_LDAP_GROUP_TYPE = GroupOfNamesType()
+AUTH_LDAP_USER_FLAGS_BY_GROUP = {
+    "is_staff": config('FLAG_DN')
+}
+#AUTH_LDAP_REQUIRE_GROUP = "cn=your-group,ou=groups,dc=example,dc=com"
+
+import logging
+
+# Включаем логирование для модуля django_auth_ldap
+logger = logging.getLogger('django_auth_ldap')
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.DEBUG)
