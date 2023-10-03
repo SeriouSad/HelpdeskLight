@@ -20,6 +20,10 @@ class CustomLDAPBackend(LDAPBackend):
             name = ldap_user.attrs.get('givenName', [None])[0]
             surname = ldap_user.attrs.get('sn', [None])[0]
             email = ldap_user.attrs.get('mail', [None])[0]
+            try:
+                email = email.lower()
+            except AttributeError:
+                pass
             ou_list = ldap_user.attrs.get('distinguishedName', [])
             user.first_name = name
             user.last_name = surname

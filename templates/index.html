@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
-
+{% load static %}
 {% block title %}{% endblock title %}
 {% block body %}
 
@@ -39,6 +39,11 @@
     <p>
         Если у вас возникнут вопросы или проблемы, пожалуйста, обратитесь к администратору системы или технической поддержке.
     </p>
+
+<video autoplay loop>
+    <source src="{% static 'css/1--online-audio-convert.com.mp4' %}" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
 </div>
 
 

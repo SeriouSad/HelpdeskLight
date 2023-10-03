@@ -13,6 +13,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.decorators import login_required
+from django.views import View
 from .models import *
 from .serializers import *
 from .forms import *
@@ -22,11 +23,14 @@ from .forms import *
 class CreateUserTg(APIView):
     def post(self, request):
         data = dict(request.data)
-        email = data.get("email", None)
+        email = data.get("email", None).lower()
         tg_id = data.get("tg_id", None)
         if email and tg_id:
-            if not User.objects.filter(email=email).exists():
-                user = User.objects.create(email=email, username=email)
+            if not TelegramUser.objects.filter(tg_id=tg_id).exists():
+                if not User.objects.filter(email=email).exists():
+                    user = User.objects.create(email=email, username=email)
+                else:
+                    user = User.objects.get(email=email)
                 token = default_token_generator.make_token(user)
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 current_site = get_current_site(request)
@@ -39,7 +43,7 @@ class CreateUserTg(APIView):
                 email.send()
                 return Response(status=status.HTTP_200_OK)
             else:
-                return Response({"Error": "User already exists"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"Error": "TG user already exists"}, status=status.HTTP_409_CONFLICT)
         else:
             return Response({'Error': 'Wrong fields'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -70,7 +74,7 @@ class CreateTicket(APIView):
             subcategory_obj = Subcategory.objects.get(id=subcategory)
             category = subcategory_obj.category
             ticket = Ticket.objects.create(owner=owner, phone=contacts, category=category,
-                                           subcategory=subcategory_obj, description=description, place=place)
+                                           subcategory=subcategory_obj, description=description, place=place, type=2)
             ticket.save()
             return Response(ticket.token, status=status.HTTP_200_OK)
         else:
@@ -104,24 +108,37 @@ class GetTicket(APIView):
         else:
             return Response({'Error': 'Wrong fields'}, status=status.HTTP_400_BAD_REQUEST)
 
+
 # endregion
+class EmailConfirmationView(View):
+    @staticmethod
+    def get(request, uidb64, token, tg_id):
+        try:
+            tg_id = int(tg_id)
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+
+            if default_token_generator.check_token(user, token):
+                user.is_email_confirmed = True
+                user.save()
+                user_tg = TelegramUser.objects.create(tg_id=tg_id, user=user)
+                user_tg.save()
+
+            return render(request, 'confirmation/email_confirmed.html')
+        except User.DoesNotExist:
+            return render(request, 'confirmation/invalid_confirmation_link.html')
 
 
-def confirm_email(request, uidb64, token, tg_id):
-    try:
-        tg_id = int(tg_id)
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = User.objects.get(pk=uid)
-
-        if default_token_generator.check_token(user, token):
-            user.is_email_confirmed = True
-            user.save()
-            user_tg = TelegramUser.objects.create(tg_id=tg_id, user=user)
-            user_tg.save()
-
-        return render(request, 'confirmation/email_confirmed.html')
-    except User.DoesNotExist:
-        return render(request, 'confirmation/invalid_confirmation_link.html')
+# TODO Переделать функцию на этот вью
+class SendMessageView(View):
+    @staticmethod
+    def post(request, ticket):
+        message_form = ChatForm(request.POST)
+        if message_form.is_valid():
+            message_form.instance.owner = request.user
+            message_form.instance.ticket = ticket
+            message_form.save()
+            return True
 
 
 def send_message(request, ticket):
@@ -134,11 +151,35 @@ def send_message(request, ticket):
             return True
 
 
+class IndexView(View):
+    @staticmethod
+    @login_required
+    def get(request):
+        return render(request, 'index.html')
 
 
-@login_required
-def index(request):
-    return render(request, 'index.html')
+class CreateNewTicketView(View):
+    @staticmethod
+    @login_required
+    def get(request):
+        if request.user.groups.filter(name__in=["Employee", "Operators"]):
+            form = NewTicketOperator()
+        else:
+            form = NewTicket()
+        return render(request, 'create_ticket.html', {'form': form})
+
+    @staticmethod
+    @login_required
+    def post(request):
+        if request.user.groups.filter(name__in=["Employee", "Operators"]):
+            form = NewTicketOperator(request.POST)
+        else:
+            form = NewTicket(request.POST)
+        if form.is_valid():
+            form.instance.owner = request.user
+            form.save()
+            return render(request, 'index.html')
+
 
 
 @login_required

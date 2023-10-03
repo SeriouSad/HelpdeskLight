@@ -9,6 +9,9 @@ import base64
 import re
 
 
+prohibited_list = ['noreply@rea.ru', 'rea-news@rea.ru', 'dolgopolov.kv@rea.ru']
+
+
 def split_answer(message_text):
     lines = message_text.splitlines()
     index = next(i for i, x in enumerate(lines) if "IThelp@rea.ru" in x)
@@ -23,7 +26,7 @@ def process_received_mail():
     mailbox = Mailbox.objects.get(name='IT-Help')
 
     for message in mailbox.get_new_mail():
-        if re.fullmatch("\S*@rea.ru", message.from_address[0]):
+        if re.fullmatch("\S*@rea.ru", message.from_address[0]) and message.from_address[0] not in prohibited_list:
             subject = message.subject
             text = message.text
             if not text:
@@ -31,6 +34,7 @@ def process_received_mail():
                 text = "\n".join(line for line in text.splitlines() if line.strip())
                 text = re.sub(r'&nbsp;', '', text)
             from_user = message.from_address
+            print(from_user)
             pattern = r'#(\d+)'
             match = re.findall(pattern, subject)
             if match:
@@ -39,15 +43,15 @@ def process_received_mail():
                 ticket = Ticket.objects.get(token=token)
                 Comment.objects.create(owner=ticket.owner, ticket=ticket, content=text)
             else:
-                if not User.objects.filter(email=from_user).exists():
-                    user = User.objects.create(email=from_user[0], username=from_user[0].split("@")[0])
+                if not User.objects.filter(email__iexact=from_user[0].lower()).exists():
+                    user = User.objects.create(email=from_user[0].lower(), username=from_user[0].split("@")[0])
                     message_text = render_to_string('email/new_account.html',
                                                     context={'username': user.username, 'password': 1234})
                     email = EmailMessage(f'Регистрация в системе', message_text, to=from_user)
                     email.content_subtype = 'html'
                     email.send()
                 else:
-                    user = User.objects.get(email=from_user[0])
+                    user = User.objects.get(email__iexact=from_user[0].lower())
                 ticket = Ticket.objects.create(owner=user, description=text, email=from_user[0], type=1)
                 message_text = render_to_string('email/new.html', context={'token': ticket.token})
                 email = EmailMessage(f'#{ticket.token} | Заявка: {subject}', message_text, to=from_user)
