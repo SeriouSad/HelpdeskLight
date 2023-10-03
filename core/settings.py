@@ -70,11 +70,11 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.static',  # Make sure this is included
             ],
         },
     },
 ]
-
 WSGI_APPLICATION = 'core.wsgi.application'
 
 AUTHENTICATION_BACKENDS = [
@@ -86,15 +86,15 @@ AUTHENTICATION_BACKENDS = [
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-if os.getenv("LOCALHOST") == "False":
+if config('LOCALHOST') == "False":
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv("NAME"),
-            'USER': os.getenv("USER_SQL"),
-            'PASSWORD': os.getenv("PASSWORD"),
-            'HOST': os.getenv("HOST"),
-            'PORT': os.getenv("PORT"),
+            'NAME': config("NAME"),
+            'USER': config("USER_SQL"),
+            'PASSWORD': config("PASSWORD"),
+            'HOST': config("HOST"),
+            'PORT': config("PORT"),
         }
     }
 else:
@@ -104,7 +104,6 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -144,12 +143,7 @@ STATIC_URL = 'static/'
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/helpdesk/'
 
-# STATICFILES_DIRS = [
-#     BASE_DIR / "static",
-#
-# ]
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-
+STATICFILES_DIRS = [BASE_DIR / "static"]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
