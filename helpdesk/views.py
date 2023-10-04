@@ -155,7 +155,7 @@ class IndexView(View):
     @staticmethod
     @login_required
     def get(request):
-        return render(request, 'index.html', {'user': request.user})
+        return render(request, 'index.html', {'groups': [group.name for group in request.user.groups.all()]})
 
 
 class CreateNewTicketView(View):
@@ -166,7 +166,7 @@ class CreateNewTicketView(View):
             form = NewTicketOperator()
         else:
             form = NewTicket()
-        return render(request, 'create_ticket.html', {'form': form, 'user': request.user})
+        return render(request, 'create_ticket.html', {'form': form, 'groups': [group.name for group in request.user.groups.all()]})
 
     @staticmethod
     @login_required
@@ -178,7 +178,7 @@ class CreateNewTicketView(View):
         if form.is_valid():
             form.instance.owner = request.user
             form.save()
-            return render(request, 'index.html', {'user': request.user})
+            return render(request, 'index.html', {'groups':[group.name for group in request.user.groups.all()] })
 
 
 
@@ -192,12 +192,12 @@ def create_new(request):
         if form.is_valid():
             form.instance.owner = request.user
             form.save()
-            return render(request, 'index.html', {'user': request.user})
+            return render(request, 'index.html', {'groups': [group.name for group in request.user.groups.all()]})
     if request.user.groups.filter(name__in=["Employee", "Operators"]):
         form = NewTicketOperator()
     else:
         form = NewTicket()
-    return render(request, 'create_ticket.html', {'form': form, 'user': request.user})
+    return render(request, 'create_ticket.html', {'form': form, 'groups': [group.name for group in request.user.groups.all()]})
 
 
 @login_required
@@ -221,15 +221,15 @@ def ticket_sort(request, ticket_id=None):
 
             return render(request, 'employee/ticket_work.html',
                           {"tickets": tickets, 'form': form, 'link': link,
-                           'messages': messages, 'chat': True, "chat_form": chat_form, 'user': request.user})
+                           'messages': messages, 'chat': True, "chat_form": chat_form, 'groups': [group.name for group in request.user.groups.all()]})
         else:
             messages = Comment.objects.filter(ticket=ticket)
             form = EditTicketOperator(instance=ticket)
             return render(request, 'employee/ticket_work.html',
                           {"tickets": tickets, 'form': form, 'link': link,
-                           'messages': messages, 'chat': True, "chat_form": chat_form, 'user': request.user})
+                           'messages': messages, 'chat': True, "chat_form": chat_form, 'groups': [group.name for group in request.user.groups.all()]})
     return render(request, 'employee/ticket_work.html',
-                  {"tickets": tickets, 'form': None, 'link': link, 'user': request.user})
+                  {"tickets": tickets, 'form': None, 'link': link, 'groups': [group.name for group in request.user.groups.all()]})
 
 
 @login_required
@@ -253,15 +253,15 @@ def user_tickets(request, ticket_id=None):
 
             return render(request, 'employee/ticket_work.html',
                           {"tickets": tickets, 'form': form, 'link': link,
-                           'messages': messages, 'chat': True, "chat_form": chat_form, 'user': request.user})
+                           'messages': messages, 'chat': True, "chat_form": chat_form, 'groups': [group.name for group in request.user.groups.all()]})
         else:
             messages = Comment.objects.filter(ticket=ticket)
             form = EditTicketUser(instance=ticket)
             return render(request, 'employee/ticket_work.html',
                           {"tickets": tickets, 'form': form, 'link': link,
-                           'messages': messages, 'chat': True, "chat_form": chat_form, 'user': request.user})
+                           'messages': messages, 'chat': True, "chat_form": chat_form, 'groups': [group.name for group in request.user.groups.all()]})
     return render(request, 'employee/ticket_work.html',
-                  {"tickets": tickets, 'form': None, 'link': link, 'user': request.user})
+                  {"tickets": tickets, 'form': None, 'link': link, 'groups': [group.name for group in request.user.groups.all()]})
 
 
 @login_required
@@ -289,12 +289,12 @@ def do_tickets(request, ticket_id=None):
 
             return render(request, 'employee/ticket_work.html',
                           {"tickets": tickets, 'form': form, 'link': link,
-                           'messages': messages, 'chat': True, "chat_form": chat_form, 'user': request.user})
+                           'messages': messages, 'chat': True, "chat_form": chat_form, 'groups': [group.name for group in request.user.groups.all()]})
         else:
             messages = Comment.objects.filter(ticket=ticket)
             form = EditTicketOperator(instance=ticket)
             return render(request, 'employee/ticket_work.html',
                           {"tickets": tickets, 'form': form, 'link': link,
-                           'messages': messages, 'chat': True, "chat_form": chat_form, 'user': request.user})
+                           'messages': messages, 'chat': True, "chat_form": chat_form, 'groups': [group.name for group in request.user.groups.all()]})
     return render(request, 'employee/ticket_work.html',
-                  {"tickets": tickets, 'form': None, 'link': link, 'user': request.user})
+                  {"tickets": tickets, 'form': None, 'link': link, 'groups': [group.name for group in request.user.groups.all()]})

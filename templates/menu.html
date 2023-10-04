@@ -7,7 +7,7 @@
         </div>
         <nav class="sidebar">
             <h1>HelpDesk Light</h1>
-            {%  if employee %}
+            {% if 'Employee' in groups %}
                 <ul>
                     <li><a href="{% url 'ticket_work' %}">Разбор заявок</a></li>
                     <li><a href="{% url 'create_new' %}">Создать заявку</a></li>
